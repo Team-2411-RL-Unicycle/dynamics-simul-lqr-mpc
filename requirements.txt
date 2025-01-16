@@ -1,0 +1,8 @@
+# To install these dependencies, use the following command:
+# pip install -r requirements.txt
+
+numpy==1.26.4
+sympy==1.9
+matplotlib==3.10.0
+scipy==1.15.1
+cvxpy==1.6.0

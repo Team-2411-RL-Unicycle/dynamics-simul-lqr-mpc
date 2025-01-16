@@ -6,7 +6,6 @@ import scipy.linalg
 import cvxpy as cp
 import time as clock
 
-
 class InvertedPendulum:
     def __init__(self, params=None):
         # Define default parameters
@@ -280,6 +279,10 @@ class MPCController(BaseController):
         # Store solution
         self.last_x_sol = self.x_var.value
         self.last_u_sol = self.u_var.value
+
+        if self.u_var.value is None:
+            print("No solution found!")
+            return np.zeros(self.m)
 
         # Return the first control input
         return self.u_var[:, 0].value

@@ -81,7 +81,7 @@ def run_lqr(pendulum, x0, Tnet, CF, Q=np.diag([10000, 0.1, 0.015]), R=np.diag([1
 
 
 def run_mpc(
-    pendulum,
+    pendulum: sim.InvertedPendulum,
     x0,
     Tnet,
     CF,
@@ -118,7 +118,7 @@ def run_mpc(
 
     Qf = w_final * Q
 
-    solver_kwargs = {"verbose": False, "max_iter": max_iter, "time_limit": time_limit}
+    solver_kwargs = {"verbose": True, "max_iter": max_iter, "time_limit": time_limit}
 
     mpc = sim.MPCController(
         A_d, B_d, Q, R, Qf=Qf, N=T, tau_max=tau_max, solver_kwargs=solver_kwargs
@@ -168,7 +168,7 @@ def compare_controllers():
         tau_max=params["tau_max"],
         T=30,
         w_final=10.0,
-        time_limit=0.001,
+        time_limit=0.004,
     )
 
     # Create a 2x2 grid of subplots
@@ -225,8 +225,8 @@ def compare_mpc_settings():
     Q1 = np.diag([1e4, 0.1, 25e-3])
     R1 = np.diag([1e3])
 
-    T_vals = [20, 40, 50]
-    t_limits = [5e-4, 5e-3]
+    T_vals = [20, 50, 80]
+    t_limits = [2e-3, 5e-3]
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 
@@ -278,11 +278,13 @@ def compare_mpc_settings():
     plt.tight_layout()
 
     dir = os.path.dirname(__file__)
+    figures_path = os.path.join(dir, "../figures")
+    os.makedirs(figures_path, exist_ok=True)
     save_path = os.path.join(dir, "../figures/mpc_settings_comparison.png")
     plt.savefig(save_path, dpi=300)
 
     plt.show()
 
 if __name__ == "__main__":
-    compare_controllers()
+    # compare_controllers()
     compare_mpc_settings()
