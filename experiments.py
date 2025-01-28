@@ -204,6 +204,81 @@ def compare_controllers():
     plt.show()
 
 
+def compare_controllers_full_robot():
+    params = {
+        "g0": 9.81,
+        "mw": 0.351,
+        "mp": 1.670,
+        "lp": 0.122,
+        "lw": 0.18,
+        "Ip": 0.030239, # [kg * m^2]
+        "Iw": 0.000768,
+        "tau_max": 2.0,
+    }
+
+    x0 = np.array([1, 0, 0, 0])
+    Tnet = 5  # s
+    CF = 100  # Hz
+
+    robot = sim.InvertedPendulum(params=params)
+
+    t_pid, y_pid = run_pid(robot, x0, Tnet, CF)
+
+    Q1 = np.diag([1e4, 0.1, 25e-3])
+    R1 = np.diag([1e3])
+
+    Q2 = np.diag([10000, 0.1, 0.015])
+    R2 = np.diag([100])
+
+    t_lqr, y_lqr = run_lqr(robot, x0, Tnet, CF, Q=Q1, R=R1)
+    # t_lqr2, y_lqr2 = run_lqr(robot, x0, Tnet, CF, Q=Q2, R=R2)
+
+    t_mpc, y_mpc = run_mpc(
+        robot,
+        x0,
+        Tnet,
+        CF,
+        Q=Q1,
+        R=R1,
+        tau_max=params["tau_max"],
+        T=30,
+        w_final=10.0,
+        time_limit=0.004,
+    )
+
+    # Create a 2x2 grid of subplots
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+
+    # Plot $\phi$ (Pendulum Angle) in the left subplot
+    axs[0].plot(t_pid, y_pid[0], label="PID Controller", color="blue")
+    # axs[0].plot(t_lqr, y_lqr[0], label="LQR Controller", color="red")
+    axs[0].plot(t_lqr, y_lqr[0], label="LQR Controller (Q1, R1)", color="green")
+    axs[0].plot(t_mpc, y_mpc[0], label="MPC Controller (Q1, R1)", color="purple")
+    axs[0].set_xlabel("Time [s]")
+    axs[0].set_ylabel("Angle [rad]")
+    axs[0].grid()
+    axs[0].legend()
+
+    # Plot $\thetadot$ (Wheel speed) in the right subplot
+    axs[1].plot(t_pid, y_pid[3], label="PID Controller", color="blue")
+    axs[1].plot(t_lqr, y_lqr[3], label="LQR Controller (Q1, R1)", color="green")
+    axs[1].plot(t_mpc, y_mpc[3], label="MPC Controller (Q1, R1)", color="purple")
+    axs[1].set_xlabel("Time [s]")
+    axs[1].set_ylabel("Speed [rad/s]")
+    axs[1].grid()
+    axs[1].legend()
+
+    # Adjust layout for better spacing
+    plt.tight_layout()
+
+    # Save in high resolution
+    dir = os.path.dirname(__file__)
+    save_path = os.path.join(dir, "./figures/controller_comparison_full_robot.png")
+    print(f"Saving figure to {save_path}.")
+    plt.savefig(save_path, dpi=300)
+
+    plt.show()
+
 def compare_mpc_settings():
     params = {
         "g0": 9.81,
@@ -286,5 +361,5 @@ def compare_mpc_settings():
     plt.show()
 
 if __name__ == "__main__":
-    # compare_controllers()
-    compare_mpc_settings()
+    compare_controllers_full_robot()
+    # compare_mpc_settings()
