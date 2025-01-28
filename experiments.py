@@ -205,7 +205,7 @@ def compare_controllers():
 
 
 def compare_controllers_full_robot():
-    params = {
+    robot_params = {
         "g0": 9.81,
         "mw": 0.351,
         "mp": 1.670,
@@ -220,7 +220,7 @@ def compare_controllers_full_robot():
     Tnet = 5  # s
     CF = 100  # Hz
 
-    robot = sim.InvertedPendulum(params=params)
+    robot = sim.InvertedPendulum(params=robot_params)
 
     t_pid, y_pid = run_pid(robot, x0, Tnet, CF)
 
@@ -273,7 +273,7 @@ def compare_controllers_full_robot():
 
     # Save in high resolution
     dir = os.path.dirname(__file__)
-    save_path = os.path.join(dir, "./figures/controller_comparison_full_robot.png")
+    save_path = os.path.join(dir, "../figures/controller_comparison_full_robot.png")
     print(f"Saving figure to {save_path}.")
     plt.savefig(save_path, dpi=300)
 
@@ -291,11 +291,22 @@ def compare_mpc_settings():
         "tau_max": 1.0,
     }
 
+    robot_params = {
+        "g0": 9.81,
+        "mw": 0.351,
+        "mp": 1.670,
+        "lp": 0.122,
+        "lw": 0.18,
+        "Ip": 0.030239, # [kg * m^2]
+        "Iw": 0.000768,
+        "tau_max": 2.0,
+    }
+
     x0 = np.array([1, 0, 0, 0])
     Tnet = 5  # s
     CF = 100  # Hz
 
-    pendulum = sim.InvertedPendulum(params=params)
+    pendulum = sim.InvertedPendulum(params=robot_params)
 
     Q1 = np.diag([1e4, 0.1, 25e-3])
     R1 = np.diag([1e3])
@@ -314,7 +325,7 @@ def compare_mpc_settings():
             CF,
             Q=Q1,
             R=R1,
-            tau_max=params["tau_max"],
+            tau_max=robot_params["tau_max"],
             T=T,
             w_final=10.0,
             time_limit=0.001,
@@ -331,7 +342,7 @@ def compare_mpc_settings():
             CF,
             Q=Q1,
             R=R1,
-            tau_max=params["tau_max"],
+            tau_max=robot_params["tau_max"],
             T=30,
             w_final=10.0,
             time_limit=t_lim,
@@ -361,5 +372,5 @@ def compare_mpc_settings():
     plt.show()
 
 if __name__ == "__main__":
-    compare_controllers_full_robot()
-    # compare_mpc_settings()
+    # compare_controllers_full_robot()
+    compare_mpc_settings()
