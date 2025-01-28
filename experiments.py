@@ -79,7 +79,6 @@ def run_lqr(pendulum, x0, Tnet, CF, Q=np.diag([10000, 0.1, 0.015]), R=np.diag([1
     t_lqr, y_lqr = pendulum.simulate(x0=x0, Tnet=Tnet, control_freq=CF, controller=lqr)
     return t_lqr, y_lqr
 
-
 def run_mpc(
     pendulum: sim.InvertedPendulum,
     x0,
@@ -273,7 +272,9 @@ def compare_controllers_full_robot():
 
     # Save in high resolution
     dir = os.path.dirname(__file__)
-    save_path = os.path.join(dir, "./figures/controller_comparison_full_robot.png")
+    imgs_dir = os.path.join(dir, "./figures")
+    os.makedirs(imgs_dir, exist_ok=True)  # Ensure the directory exists
+    save_path = os.path.join(imgs_dir, "./controller_comparison_full_robot.png")
     print(f"Saving figure to {save_path}.")
     plt.savefig(save_path, dpi=300)
 
@@ -352,14 +353,18 @@ def compare_mpc_settings():
     # Adjust layout for better spacing
     plt.tight_layout()
 
+    # Define the directory and ensure it exists
     dir = os.path.dirname(__file__)
-    figures_path = os.path.join(dir, "../figures")
-    os.makedirs(figures_path, exist_ok=True)
-    save_path = os.path.join(dir, "../figures/mpc_settings_comparison.png")
+    figures_path = os.path.join(dir, "figures")
+    os.makedirs(figures_path, exist_ok=True)  # Ensure the directory exists
+
+    # Define the save path
+    save_path = os.path.join(figures_path, "controller_comparison_full_robot.png")
+    
     plt.savefig(save_path, dpi=300)
 
     plt.show()
 
 if __name__ == "__main__":
-    compare_controllers_full_robot()
-    # compare_mpc_settings()
+    # compare_controllers_full_robot()
+    compare_mpc_settings()
