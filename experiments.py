@@ -95,13 +95,13 @@ def run_mpc(
     def Afunc(state):
         phi, phidot, thetadot = state
         A = np.array(
-            [[0, 1, 0], [58.0587 * np.cos(phi), 0, 0], [-58.0587 * np.cos(phi), 0, 0]]
+            [[0, 1, 0], [38.0980 * np.cos(phi), 0, 0], [-38.0980 * np.cos(phi), 0, 0]]
         )
         return A
 
     def Bfunc(state):
         phi, phidot, thetadot = state
-        B = np.array([[0], [-51.294], [1379.31]])
+        B = np.array([[0], [-13.8], [1315.8]])
         return B
 
     n = 3  # Number of states
@@ -112,7 +112,7 @@ def run_mpc(
     B = Bfunc(state_linearization)
     # Given continuous-time A, B and delta_t
     delta_t = 1 / float(CF)
-    A_d = np.eye(n) + delta_t * A
+    A_d = np.eye(n) + delta_t * A  # Is this for initial conditions?
     B_d = delta_t * B
 
     Qf = w_final * Q
@@ -239,7 +239,7 @@ def compare_controllers_full_robot():
         CF,
         Q=Q1,
         R=R1,
-        tau_max=params["tau_max"],
+        tau_max=robot_params["tau_max"],
         T=30,
         w_final=10.0,
         time_limit=0.004,
@@ -281,43 +281,32 @@ def compare_controllers_full_robot():
     plt.show()
 
 def compare_mpc_settings():
-    params = {
-        "g0": 9.81,
-        "mw": 0.346,
-        "mp": 0.531,
-        "lp": 0.1,
-        "lw": 0.18,
-        "Ip": 0.002250,
-        "Iw": 0.000725,
-        "tau_max": 1.0,
-    }
-
     robot_params = {
-        "g0": 9.81,
-        "mw": 0.351,
-        "mp": 1.670,
-        "lp": 0.122,
-        "lw": 0.18,
-        "Ip": 0.030239, # [kg * m^2]
-        "Iw": 0.000768,
-        "tau_max": 2.0,
+        "g0": 9.81,  # Gravitational acceleration [m/s^2]
+        "mw": 0.351,  # Wheel mass [kg]
+        "mp": 1.670,  # Pendulum mass [kg]
+        "lp": 0.122,  # Pendulum length to center of mass [m]
+        "lw": 0.18,  # Wheel radius [m]
+        "Ip": 0.030239,  # Pendulum moment of inertia [kg·m^2]
+        "Iw": 0.000768,  # Wheel moment of inertia [kg·m^2]
+        "tau_max": 2.0,  # Maximum allowable control torque [Nm]
     }
 
-    x0 = np.array([1, 0, 0, 0])
-    Tnet = 5  # s
-    CF = 100  # Hz
+    x0 = np.array([1, 0, 0, 0])  # Initial angle [rad], wheel angle [rad], angular velocities [rad/s]
+    Tnet = 5  # Total simulation time [s]
+    CF = 100  # Control frequency [Hz]
 
     pendulum = sim.InvertedPendulum(params=robot_params)
 
-    Q1 = np.diag([1e4, 0.1, 25e-3])
-    R1 = np.diag([1e3])
+    Q1 = np.diag([1e4, 0.1, 25e-3])  # Penalizes pendulum angle, angular velocity, and wheel velocity deviations
+    R1 = np.diag([1e3])  # Penalizes control effort
 
-    T_vals = [20, 50, 80]
-    t_limits = [2e-3, 5e-3]
+    T_vals = [20, 50, 80] # Time horizon values for MPC optimization [steps]
+    t_limits = [2e-3, 5e-3] # Time limit values for MPC solver [s]
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 
-    # Plot for different T values
+    # Plot for different time horizons (T values)
     for T in T_vals:
         t_mpc, y_mpc = run_mpc(
             pendulum,
@@ -334,7 +323,7 @@ def compare_mpc_settings():
         axs[0].plot(t_mpc, y_mpc[0], label=f"T={T}")
         axs[1].plot(t_mpc, y_mpc[3], label=f"T={T}")
 
-    # Plot for different time limits
+    # Plot for different solver time limits and plot results
     for t_lim in t_limits:
         t_mpc, y_mpc = run_mpc(
             pendulum,
