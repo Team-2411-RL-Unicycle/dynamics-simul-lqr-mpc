@@ -8,7 +8,7 @@ import time as clock
 
 
 class RobotRoll:
-    def __init__(self, params=None):
+    def __init__(self, params=None, tau_max = 2.0):
         # Define default parameters
         robot_params = {
             "g0": 9.81,
@@ -18,7 +18,7 @@ class RobotRoll:
             "lw": 0.18,
             "Ip": 0.030239,  # [kg * m^2]
             "Iw": 0.000768,
-            "tau_max": 2.0,
+            "tau_max": tau_max,
         }
         self.params = params if params else robot_params
         self.g0 = self.params["g0"]

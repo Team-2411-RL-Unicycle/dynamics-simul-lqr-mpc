@@ -61,11 +61,7 @@ def run_pid(pendulum, x0, Tnet, CF):
 
 def run_lqr(pendulum, x0, Tnet, CF, Q=np.diag([10000, 0.1, 0.015]), R=np.diag([100])):
 
-    A_full, B_full = pendulum.linearized_matrices()
-    # Remove theta as a state
-    state_indices = [0, 2, 3]
-    A = A_full[np.ix_(state_indices, state_indices)]
-    B = B_full[np.ix_(state_indices, [0])]  # Only single control input
+    A, B = pendulum.Afunc(), pendulum.Bfunc()
 
     # Solve the Algebraic Riccati Equation
     P = scipy.linalg.solve_continuous_are(A, B, Q, R)
@@ -136,7 +132,7 @@ def compare_controllers():
 
     pendulum = sim.RobotRoll(params=params)
 
-    t_pid, y_pid = run_pid(pendulum, x0, Tnet, CF)
+    # t_pid, y_pid = run_pid(pendulum, x0, Tnet, CF)
 
     Q1 = np.diag([1e4, 0.1, 25e-3])
     R1 = np.diag([1e3])
@@ -164,7 +160,7 @@ def compare_controllers():
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 
     # Plot $\phi$ (Pendulum Angle) in the left subplot
-    axs[0].plot(t_pid, y_pid[0], label="PID Controller", color="blue")
+    # axs[0].plot(t_pid, y_pid[0], label="PID Controller", color="blue")
     # axs[0].plot(t_lqr, y_lqr[0], label="LQR Controller", color="red")
     axs[0].plot(t_lqr2, y_lqr2[0], label="LQR Controller (Q1, R1)", color="green")
     axs[0].plot(t_mpc, y_mpc[0], label="MPC Controller (Q1, R1)", color="purple")
@@ -174,7 +170,7 @@ def compare_controllers():
     axs[0].legend()
 
     # Plot $\thetadot$ (Wheel speed) in the right subplot
-    axs[1].plot(t_pid, y_pid[3], label="PID Controller", color="blue")
+    # axs[1].plot(t_pid, y_pid[3], label="PID Controller", color="blue")
     axs[1].plot(t_lqr2, y_lqr2[3], label="LQR Controller (Q1, R1)", color="green")
     axs[1].plot(t_mpc, y_mpc[3], label="MPC Controller (Q1, R1)", color="purple")
     axs[1].set_xlabel("Time [s]")
@@ -194,24 +190,15 @@ def compare_controllers():
 
 
 def compare_controllers_full_robot():
-    robot_params = {
-        "g0": 9.81,
-        "mw": 0.351,
-        "mp": 1.670,
-        "lp": 0.122,
-        "lw": 0.18,
-        "Ip": 0.030239,  # [kg * m^2]
-        "Iw": 0.000768,
-        "tau_max": 2.0,
-    }
 
-    x0 = np.array([1, 0, 0, 0])
+    x0 = np.array([0.2, 0, 0, 0])
     Tnet = 5  # s
-    CF = 100  # Hz
+    CF = 30  # Hz
 
-    robot = sim.RobotRoll(params=robot_params)
+    tau_max = 1.4
+    robot = sim.RobotRoll(tau_max=tau_max)
 
-    t_pid, y_pid = run_pid(robot, x0, Tnet, CF)
+    # t_pid, y_pid = run_pid(robot, x0, Tnet, CF)
 
     Q1 = np.diag([1e4, 0.1, 25e-3])
     R1 = np.diag([1e3])
@@ -229,8 +216,8 @@ def compare_controllers_full_robot():
         CF,
         Q=Q1,
         R=R1,
-        tau_max=robot_params["tau_max"],
-        T=30,
+        tau_max=tau_max,
+        T=100,
         w_final=10.0,
         time_limit=0.004,
     )
@@ -239,7 +226,7 @@ def compare_controllers_full_robot():
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 
     # Plot $\phi$ (Pendulum Angle) in the left subplot
-    axs[0].plot(t_pid, y_pid[0], label="PID Controller", color="blue")
+    # axs[0].plot(t_pid, y_pid[0], label="PID Controller", color="blue")
     # axs[0].plot(t_lqr, y_lqr[0], label="LQR Controller", color="red")
     axs[0].plot(t_lqr, y_lqr[0], label="LQR Controller (Q1, R1)", color="green")
     axs[0].plot(t_mpc, y_mpc[0], label="MPC Controller (Q1, R1)", color="purple")
@@ -249,7 +236,7 @@ def compare_controllers_full_robot():
     axs[0].legend()
 
     # Plot $\thetadot$ (Wheel speed) in the right subplot
-    axs[1].plot(t_pid, y_pid[3], label="PID Controller", color="blue")
+    # axs[1].plot(t_pid, y_pid[3], label="PID Controller", color="blue")
     axs[1].plot(t_lqr, y_lqr[3], label="LQR Controller (Q1, R1)", color="green")
     axs[1].plot(t_mpc, y_mpc[3], label="MPC Controller (Q1, R1)", color="purple")
     axs[1].set_xlabel("Time [s]")
@@ -283,17 +270,21 @@ def compare_mpc_settings():
         "tau_max": 2.0,  # Maximum allowable control torque [Nm]
     }
 
-    x0 = np.array([1, 0, 0, 0])  # Initial angle [rad], wheel angle [rad], angular velocities [rad/s]
+    x0 = np.array(
+        [1, 0, 0, 0]
+    )  # Initial angle [rad], wheel angle [rad], angular velocities [rad/s]
     Tnet = 5  # Total simulation time [s]
     CF = 100  # Control frequency [Hz]
 
     pendulum = sim.RobotRoll(params=robot_params)
 
-    Q1 = np.diag([1e4, 0.1, 25e-3])  # Penalizes pendulum angle, angular velocity, and wheel velocity deviations
+    Q1 = np.diag(
+        [1e4, 0.1, 25e-3]
+    )  # Penalizes pendulum angle, angular velocity, and wheel velocity deviations
     R1 = np.diag([1e3])  # Penalizes control effort
 
-    T_vals = [20, 50, 80] # Time horizon values for MPC optimization [steps]
-    t_limits = [2e-3, 5e-3] # Time limit values for MPC solver [s]
+    T_vals = [20, 50, 80]  # Time horizon values for MPC optimization [steps]
+    t_limits = [2e-3, 5e-3]  # Time limit values for MPC solver [s]
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 
