@@ -79,8 +79,9 @@ def run_lqr(pendulum, x0, Tnet, CF, Q=np.diag([10000, 0.1, 0.015]), R=np.diag([1
     t_lqr, y_lqr = pendulum.simulate(x0=x0, Tnet=Tnet, control_freq=CF, controller=lqr)
     return t_lqr, y_lqr
 
+
 def run_mpc(
-    pendulum: sim.InvertedPendulum,
+    pendulum: sim.RobotRoll,
     x0,
     Tnet,
     CF,
@@ -92,24 +93,13 @@ def run_mpc(
     max_iter=20,
     time_limit=0.001,
 ):
-    def Afunc(state):
-        phi, phidot, thetadot = state
-        A = np.array(
-            [[0, 1, 0], [38.0980 * np.cos(phi), 0, 0], [-38.0980 * np.cos(phi), 0, 0]]
-        )
-        return A
-
-    def Bfunc(state):
-        phi, phidot, thetadot = state
-        B = np.array([[0], [-13.8], [1315.8]])
-        return B
 
     n = 3  # Number of states
     m = 1  # Control dim
 
     state_linearization = np.array([0, 0, 0])
-    A = Afunc(state_linearization)
-    B = Bfunc(state_linearization)
+    A = pendulum.Afunc()
+    B = pendulum.Bfunc()
     # Given continuous-time A, B and delta_t
     delta_t = 1 / float(CF)
     A_d = np.eye(n) + delta_t * A  # Is this for initial conditions?
@@ -144,7 +134,7 @@ def compare_controllers():
     Tnet = 5  # s
     CF = 100  # Hz
 
-    pendulum = sim.InvertedPendulum(params=params)
+    pendulum = sim.RobotRoll(params=params)
 
     t_pid, y_pid = run_pid(pendulum, x0, Tnet, CF)
 
@@ -210,7 +200,7 @@ def compare_controllers_full_robot():
         "mp": 1.670,
         "lp": 0.122,
         "lw": 0.18,
-        "Ip": 0.030239, # [kg * m^2]
+        "Ip": 0.030239,  # [kg * m^2]
         "Iw": 0.000768,
         "tau_max": 2.0,
     }
@@ -219,7 +209,7 @@ def compare_controllers_full_robot():
     Tnet = 5  # s
     CF = 100  # Hz
 
-    robot = sim.InvertedPendulum(params=robot_params)
+    robot = sim.RobotRoll(params=robot_params)
 
     t_pid, y_pid = run_pid(robot, x0, Tnet, CF)
 
@@ -280,6 +270,7 @@ def compare_controllers_full_robot():
 
     plt.show()
 
+
 def compare_mpc_settings():
     robot_params = {
         "g0": 9.81,  # Gravitational acceleration [m/s^2]
@@ -296,7 +287,7 @@ def compare_mpc_settings():
     Tnet = 5  # Total simulation time [s]
     CF = 100  # Control frequency [Hz]
 
-    pendulum = sim.InvertedPendulum(params=robot_params)
+    pendulum = sim.RobotRoll(params=robot_params)
 
     Q1 = np.diag([1e4, 0.1, 25e-3])  # Penalizes pendulum angle, angular velocity, and wheel velocity deviations
     R1 = np.diag([1e3])  # Penalizes control effort
@@ -360,11 +351,12 @@ def compare_mpc_settings():
 
     # Define the save path
     save_path = os.path.join(figures_path, "controller_comparison_full_robot.png")
-    
+
     plt.savefig(save_path, dpi=300)
 
     plt.show()
 
+
 if __name__ == "__main__":
-    # compare_controllers_full_robot()
-    compare_mpc_settings()
+    compare_controllers_full_robot()
+    # compare_mpc_settings()

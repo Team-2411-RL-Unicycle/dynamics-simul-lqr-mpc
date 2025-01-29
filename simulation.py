@@ -6,20 +6,21 @@ import scipy.linalg
 import cvxpy as cp
 import time as clock
 
-class InvertedPendulum:
+
+class RobotRoll:
     def __init__(self, params=None):
         # Define default parameters
-        default_params = {
+        robot_params = {
             "g0": 9.81,
-            "mw": 0.346,
-            "mp": 0.531,
-            "lp": 0.1,
+            "mw": 0.351,
+            "mp": 1.670,
+            "lp": 0.122,
             "lw": 0.18,
-            "Ip": 0.002250,
-            "Iw": 0.000725,
-            "tau_max": 1.0,
+            "Ip": 0.030239,  # [kg * m^2]
+            "Iw": 0.000768,
+            "tau_max": 2.0,
         }
-        self.params = params if params else default_params
+        self.params = params if params else robot_params
         self.g0 = self.params["g0"]
         self.mw = self.params["mw"]
         self.mp = self.params["mp"]
@@ -33,7 +34,7 @@ class InvertedPendulum:
         self.tau_max = self.params["tau_max"]
 
     def sys_dyn(self, x, tau):
-        """System dynamics for the inverted pendulum."""
+        """System dynamics for the inverted pendulum. sys_dyn = f(x,u)"""
 
         # Unpack state and control inputs
         phi, theta, phidot, thetadot = x
@@ -46,89 +47,16 @@ class InvertedPendulum:
         dx[3] = tau / self.Iw - self.m0 * np.sin(phi) / self.Inet
         return dx
 
-    def linearized_matrices(self):
-        """Retrieve the linearized A and B matrices at equilibrium."""
-        # Define symbolic variables
-        phi, theta, phidot, thetadot, tau = sp.symbols("phi theta phidot thetadot tau")
-        x = sp.Matrix([phi, theta, phidot, thetadot])
-        u = sp.Matrix([tau])
-
-        # Define parameters
-        g0, mw, mp, lp, lw, Ip, Iw = (
-            self.g0,
-            self.mw,
-            self.mp,
-            self.lp,
-            self.lw,
-            self.Ip,
-            self.Iw,
+    def Afunc(self):
+        """Linearize dynamics about state point, state = [phi, phidot, thetadot]."""
+        A = np.array(
+            [[0, 1, 0], [self.m0 / self.Inet, 0, 0], [-self.m0 / self.Inet, 0, 0]]
         )
-        m0 = g0 * (mp * lp + mw * lw)
-        Inet = Ip + mp * lp**2 + Iw + mw * lw**2
+        return A
 
-        # Define dynamics
-        dx = sp.Matrix(
-            [
-                phidot,
-                thetadot,
-                (m0 * sp.sin(phi) - tau) / Inet,
-                tau / Iw - m0 * sp.sin(phi) / Inet,
-            ]
-        )
-
-        # Compute Jacobians
-        A = dx.jacobian(x)
-        B = dx.jacobian(u)
-
-        # Substitute equilibrium point (x = 0, u = 0)
-        equilibrium = {phi: 0, theta: 0, phidot: 0, thetadot: 0, tau: 0}
-        A_numeric = A.subs(equilibrium)
-        B_numeric = B.subs(equilibrium)
-
-        return np.array(A_numeric).astype(float), np.array(B_numeric).astype(float)
-
-    def linearized_matrices_hardcoded(self):
-        """Generate hardcoded Jacobian functions for A(x, u) and B(x, u)."""
-        # Define symbolic variables
-        phi, theta, phidot, thetadot, tau = sp.symbols("phi theta phidot thetadot tau")
-        x = sp.Matrix([phi, theta, phidot, thetadot])
-        u = sp.Matrix([tau])
-
-        # Define parameters
-        g0, mw, mp, lp, lw, Ip, Iw = (
-            self.g0,
-            self.mw,
-            self.mp,
-            self.lp,
-            self.lw,
-            self.Ip,
-            self.Iw,
-        )
-        m0 = g0 * (mp * lp + mw * lw)
-        Inet = Ip + mp * lp**2 + Iw + mw * lw**2
-
-        # Define dynamics
-        dx = sp.Matrix(
-            [
-                phidot,
-                thetadot,
-                (m0 * sp.sin(phi) - tau) / Inet,
-                tau / Iw - m0 * sp.sin(phi) / Inet,
-            ]
-        )
-
-        # Compute Jacobians
-        A = dx.jacobian(x)
-        B = dx.jacobian(u)
-
-        print(A)
-        print(B)
-
-        # Generate NumPy-compatible functions
-        A_func = sp.lambdify((phi, theta, phidot, thetadot, tau), A, modules="numpy")
-        B_func = sp.lambdify((phi, theta, phidot, thetadot, tau), B, modules="numpy")
-
-        return A_func, B_func
+    def Bfunc(self):
+        B = np.array([[0], [-1 / self.Inet], [1 / self.Iw]])
+        return B
 
     def simulate(self, x0, Tnet, control_freq, controller):
         """Simulate the system dynamics using a given controller."""
